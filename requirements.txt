@@ -1,0 +1,7 @@
+streamlit
+pandas
+pydeck
+FlaghtRadarAPI
+beautifulsoup4
+requests
+watchdog
