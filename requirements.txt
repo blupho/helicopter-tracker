@@ -1,7 +1,7 @@
 streamlit
 pandas
 pydeck
-FlaghtRadarAPI
+FlightRadarAPI
 beautifulsoup4
 requests
 watchdog
