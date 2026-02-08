@@ -5,3 +5,4 @@ FlightRadarAPI
 beautifulsoup4
 requests
 watchdog
+pytz

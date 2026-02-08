@@ -5,18 +5,25 @@ import pydeck as pdk
 from FlightRadar24 import FlightRadar24API
 from utils import get_bounds, haversine_distance, is_helicopter
 import time
+import pytz
+import datetime
 
 # --- Configuration ---
 TARGET_LAT = 29.728611
 TARGET_LON = -95.1575
-RADIUS_MILES = 3.0
+# Default configuration
+DEFAULT_RADIUS_MILES = 3.0
 REFRESH_RATE_SEC = 30
 
 st.set_page_config(page_title="Helicopter Tracker", layout="wide")
 
 # --- App Header ---
 st.title("🚁 Helicopter Tracker")
-st.markdown(f"**Target Location:** {TARGET_LAT:.6f}, {TARGET_LON:.6f} (Radius: {RADIUS_MILES} miles)")
+
+# --- Sidebar Controls ---
+radius_miles = st.sidebar.slider("Search Radius (miles)", min_value=1.0, max_value=20.0, value=DEFAULT_RADIUS_MILES, step=0.5)
+
+st.markdown(f"**Target Location:** {TARGET_LAT:.6f}, {TARGET_LON:.6f} (Radius: {radius_miles} miles)")
 
 # --- State Management ---
 if 'last_update' not in st.session_state:
@@ -25,11 +32,11 @@ if 'last_update' not in st.session_state:
 # --- Data Fetching ---
 # --- Data Fetching ---
 @st.cache_data(ttl=REFRESH_RATE_SEC)
-def fetch_helicopter_data():
+def fetch_helicopter_data(radius_miles):
     fr_api = FlightRadar24API()
     
     # Get bounds for API query (add a buffer to ensure we catch everything on the edge)
-    bounds = get_bounds(TARGET_LAT, TARGET_LON, RADIUS_MILES + 2.0) 
+    bounds = get_bounds(TARGET_LAT, TARGET_LON, radius_miles + 2.0) 
     
     try:
         flights = fr_api.get_flights(bounds=bounds)
@@ -44,7 +51,7 @@ def fetch_helicopter_data():
         # Calculate precise distance
         dist = haversine_distance(TARGET_LAT, TARGET_LON, flight.latitude, flight.longitude)
         
-        if dist <= RADIUS_MILES:
+        if dist <= radius_miles:
             # Check if it's a helicopter
             if is_helicopter(flight.aircraft_code):
                 flight_data = {
@@ -88,7 +95,7 @@ if st.button("Refresh Now"):
     st.cache_data.clear()
     st.rerun()
 
-data, trails_data = fetch_helicopter_data()
+data, trails_data = fetch_helicopter_data(radius_miles)
 df = pd.DataFrame(data)
 df_trails = pd.DataFrame(trails_data)
 
@@ -170,6 +177,7 @@ if not df.empty:
 # NOTE: In a real deployment, st.empty() loops are sometimes discouraged, 
 # but for a local verified app they work fine.
 time_placeholder = st.empty()
-import datetime
-time_placeholder.caption(f"Last updated: {datetime.datetime.now().strftime('%H:%M:%S')}")
+central_tz = pytz.timezone('US/Central')
+current_time = datetime.datetime.now(central_tz)
+time_placeholder.caption(f"Last updated: {current_time.strftime('%H:%M:%S')} CT")
 
